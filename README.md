@@ -1,6 +1,6 @@
 # Cubism Chat
 
-LLM 对话式 Live2D Cubism Editor 编辑工具。通过自然语言控制 Cubism Editor 5.4 的 WebSocket API，支持参数编辑、键位管理、变形器操作、规则系统等。
+基于Cubism Editor 5.4 alpha的尝鲜版LLM 对话式 Live2D Cubism Editor 编辑工具。通过自然语言控制 Cubism Editor 5.4 的 WebSocket API，支持参数编辑、键位管理、变形器操作、规则系统等。未来随着live2d官方推出的更新可能会有各种改动，图一乐
 
 ## 架构
 
@@ -49,6 +49,6 @@ python main.py
 
 所有配置通过 Web 界面右上角设置面板完成：
 - **API Key**：DeepSeek API 密钥
-- **模型**：deepseek-chat / deepseek-reasoner 等
+- **模型**：建议使用DeepSeek V4系列
 - **API Base URL**：DeepSeek API 地址
 - **Cubism 端口**：Editor WebSocket 端口（默认 22033）
