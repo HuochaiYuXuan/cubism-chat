@@ -1,0 +1,13 @@
+# 敏感文件
+.env
+.cubism_token
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/

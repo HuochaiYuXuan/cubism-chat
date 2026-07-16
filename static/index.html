@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cubism Chat</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --card: #0f3460;
+    --primary: #e94560;
+    --text: #eee;
+    --text-dim: #999;
+    --accent: #53d769;
+    --warn: #ff9f43;
+    --bubble-user: #0f3460;
+    --bubble-ai: #1a1a2e;
+    --border: #2a2a4a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  header .logo { font-size: 1.3em; font-weight: 700; }
+  header .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--warn);
+  }
+  header .dot.on { background: var(--accent); }
+  header .info { font-size: 0.85em; color: var(--text-dim); }
+  header .spacer { flex: 1; }
+
+  /* Settings button */
+  #btnSettings {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 18px;
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  #btnSettings:hover { color: var(--text); border-color: var(--primary); }
+
+  /* Chat area */
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Messages */
+  .msg {
+    display: flex;
+    gap: 8px;
+    max-width: 85%;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.ai { align-self: flex-start; }
+  .msg.system { align-self: center; max-width: 95%; }
+
+  .msg .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0; font-weight: 600;
+  }
+  .msg.user .avatar { background: var(--primary); }
+  .msg.ai .avatar { background: var(--card); }
+
+  .msg .bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 14px;
+  }
+  .msg.user .bubble { background: var(--bubble-user); border-color: #3a3a5a; }
+  .msg.ai .bubble { background: var(--bubble-ai); }
+  .msg.system .bubble {
+    background: transparent;
+    border: 1px dashed var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+  }
+
+  /* Thinking indicator */
+  #thinking {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 16px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  #thinking.active { display: flex; }
+  #thinking .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+  /* Input area */
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  #input {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    overflow-y: hidden;
+    max-height: 150px;
+    line-height: 1.5;
+  }
+  #input:focus { border-color: var(--primary); }
+  #send {
+    background: var(--primary);
+    border: none;
+    color: #fff;
+    font-size: 14px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  #send:hover { opacity: 0.9; }
+  #send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Slash button */
+  #slashBtn {
+    width: 36px; height: 36px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  #slashBtn:hover { color: var(--text); border-color: var(--primary); background: #1a3460; }
+
+  /* Command palette overlay */
+  .palette-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: flex-start; justify-content: center;
+    padding-top: 12vh;
+  }
+  .palette-overlay.open { display: flex; }
+
+  .palette {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    width: 520px;
+    max-width: 90vw;
+    max-height: 60vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .palette-header { padding: 12px; border-bottom: 1px solid var(--border); }
+  .palette-header input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 14px;
+    font-size: 15px;
+    outline: none;
+    font-family: inherit;
+  }
+  .palette-header input:focus { border-color: var(--primary); }
+  .palette-header input::placeholder { color: var(--text-dim); }
+
+  .palette-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .palette-list .section {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 12px 4px;
+  }
+  .palette-list .item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .palette-list .item:hover, .palette-list .item.sel { background: var(--card); }
+  .palette-list .item .icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    background: var(--card);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .palette-list .item .icon.rule { background: #2a1a3a; color: #c084fc; }
+  .palette-list .item .icon.cmd { background: #1a2a3a; color: #60a5fa; }
+  .palette-list .item .body { flex: 1; min-width: 0; }
+  .palette-list .item .title { font-size: 14px; font-weight: 600; }
+  .palette-list .item .hint { font-size: 12px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .palette-list .empty { text-align: center; padding: 30px; color: var(--text-dim); font-size: 14px; }
+
+  /* Rule triggered banner */
+  .rule-banner {
+    background: var(--card);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin: 4px 0;
+  }
+
+  /* Modal overlay */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    width: 440px;
+    max-width: 90vw;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  }
+  .modal h2 { font-size: 1.2em; margin-bottom: 20px; }
+  .modal label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  .modal label:first-of-type { margin-top: 0; }
+  .modal input[type=text],
+  .modal input[type=password],
+  .modal input[type=url] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+  }
+  .modal input:focus { border-color: var(--primary); }
+  .modal .hint { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .modal .actions {
+    display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end;
+  }
+  .modal .actions button {
+    padding: 10px 22px; border-radius: 8px; font-size: 14px;
+    font-weight: 600; cursor: pointer; border: none;
+  }
+  .btn-cancel { background: var(--border); color: var(--text); }
+  .btn-cancel:hover { opacity: 0.8; }
+  .btn-save { background: var(--primary); color: #fff; }
+  .btn-save:hover { opacity: 0.9; }
+
+  .status-badge {
+    font-size: 12px; padding: 2px 8px; border-radius: 10px;
+    margin-left: 6px;
+  }
+  .status-badge.set { background: #1a3a1a; color: var(--accent); }
+  .status-badge.unset { background: #3a1a1a; color: var(--warn); }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Cubism Chat</span>
+  <span class="dot" id="statusDot"></span>
+  <span class="info" id="statusText">连接中...</span>
+  <span class="spacer"></span>
+  <span class="info" id="modelInfo"></span>
+  <button id="btnSettings" title="设置">&#9881;</button>
+</header>
+
+<div id="chat"></div>
+
+<div id="thinking">
+  <div class="spinner"></div>
+  <span>思考中...</span>
+</div>
+
+<footer>
+  <button id="slashBtn" title="命令和规则">/</button>
+  <textarea id="input" rows="1" placeholder="输入编辑指令..." disabled></textarea>
+  <button id="send" disabled>发送</button>
+</footer>
+
+<!-- Slash Command Palette -->
+<div class="palette-overlay" id="paletteOverlay">
+  <div class="palette" id="palette">
+    <div class="palette-header">
+      <input type="text" id="paletteSearch" placeholder="搜索命令和规则...">
+    </div>
+    <div class="palette-list" id="paletteList"></div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal">
+    <h2>&#9881; 设置</h2>
+    <label>DeepSeek API Key</label>
+    <input type="password" id="sApiKey" placeholder="sk-...">
+    <div class="hint" id="apiKeyHint"></div>
+
+    <label>模型名称</label>
+    <input type="text" id="sModel" placeholder="deepseek-chat">
+    <div class="hint">DeepSeek 模型名，如 deepseek-chat、deepseek-reasoner</div>
+
+    <label>API Base URL</label>
+    <input type="url" id="sBaseUrl" placeholder="https://api.deepseek.com">
+
+    <label>Cubism 端口号</label>
+    <input type="number" id="sCubismPort" placeholder="22033" min="1" max="65535">
+
+    <div class="actions">
+      <button class="btn-cancel" onclick="closeSettings()">取消</button>
+      <button class="btn-save" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rule Draft Modal -->
+<div class="modal-overlay" id="ruleDraftOverlay">
+  <div class="modal" style="width:520px">
+    <h2>&#128221; 规则草案</h2>
+    <label>名称</label>
+    <input type="text" id="rdName" placeholder="kebab-case-rule-name">
+
+    <label>描述</label>
+    <input type="text" id="rdDesc" placeholder="一句话描述规则用途">
+
+    <label>触发词</label>
+    <div id="rdTriggers" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px"></div>
+    <div style="display:flex;gap:6px">
+      <input type="text" id="rdTriggerNew" placeholder="添加触发词..." style="flex:1">
+      <button onclick="addTrigger()" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;cursor:pointer">+</button>
+    </div>
+
+    <label>步骤</label>
+    <textarea id="rdSteps" rows="6" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+
+    <div class="actions" style="flex-wrap:wrap;gap:6px;justify-content:space-between">
+      <div>
+        <button class="btn-cancel" onclick="deleteCurrentRule()" style="font-size:12px">&#128465; 删除</button>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn-cancel" onclick="closeRuleDraft()">取消</button>
+        <button class="btn-cancel" onclick="reviseRule()">&#9998; 让 LLM 修改</button>
+        <button class="btn-save" onclick="confirmRule()">&#9989; 确认保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+const thinking = document.getElementById('thinking');
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+const modelInfo = document.getElementById('modelInfo');
+
+let ws = null;
+let reconnectTimer = null;
+
+// ==== Settings ====
+
+const SETTINGS_KEY = 'cubism-chat-settings';
+const DEFAULTS = {
+  apiKey: '',
+  model: 'deepseek-chat',
+  baseUrl: 'https://api.deepseek.com',
+  cubismPort: '22033',
+};
+
+function loadSettings() {
+  try {
+    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(SETTINGS_KEY)) };
+  } catch { return {...DEFAULTS}; }
+}
+
+function saveSettingsToStorage(s) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+
+function getSettings() { return loadSettings(); }
+
+function openSettings() {
+  const s = loadSettings();
+  document.getElementById('sApiKey').value = s.apiKey;
+  document.getElementById('sModel').value = s.model;
+  document.getElementById('sBaseUrl').value = s.baseUrl;
+  document.getElementById('sCubismPort').value = s.cubismPort;
+  updateApiKeyHint();
+  document.getElementById('settingsOverlay').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settingsOverlay').classList.remove('open');
+}
+
+function updateApiKeyHint() {
+  const key = document.getElementById('sApiKey').value.trim();
+  const hint = document.getElementById('apiKeyHint');
+  if (key) {
+    hint.innerHTML = '<span class="status-badge set">已设置</span>';
+  } else {
+    hint.innerHTML = '<span class="status-badge unset">未设置</span> 请填入 DeepSeek API Key';
+  }
+}
+
+document.getElementById('sApiKey').addEventListener('input', updateApiKeyHint);
+
+function saveSettings() {
+  const s = {
+    apiKey: document.getElementById('sApiKey').value.trim(),
+    model: document.getElementById('sModel').value.trim() || DEFAULTS.model,
+    baseUrl: document.getElementById('sBaseUrl').value.trim() || DEFAULTS.baseUrl,
+    cubismPort: document.getElementById('sCubismPort').value.trim() || DEFAULTS.cubismPort,
+  };
+  saveSettingsToStorage(s);
+  closeSettings();
+
+  // 发送新设置到后端
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'settings', ...s }));
+  }
+
+  // 如果 API key 变了，更新按钮状态
+  updateSendState();
+  addMessage('system', '设置已保存。');
+}
+
+// 点击遮罩关闭
+document.getElementById('settingsOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeSettings();
+});
+
+// 快捷键: Escape 关闭
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSettings();
+});
+
+// ==== WebSocket ====
+
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}/ws/chat`);
+
+  ws.onopen = () => {
+    console.log('WS connected');
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    // 连接成功后发送设置
+    const s = loadSettings();
+    ws.send(JSON.stringify({ type: 'settings', ...s }));
+  };
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    switch (msg.type) {
+      case 'status':
+        updateStatus(msg);
+        break;
+      case 'message':
+        addMessage(msg.role, msg.content);
+        break;
+      case 'thinking':
+        thinking.classList.toggle('active', msg.active);
+        break;
+      case 'rules_list':
+        rulesList = msg.rules || [];
+        break;
+      case 'rule_draft':
+        openRuleDraft(msg.draft);
+        break;
+      case 'rule_triggered':
+        addMessage('system', '&#128295; 执行规则: <b>' + msg.name + '</b> — ' + msg.description);
+        break;
+      case 'tool_call_progress':
+        addMessage('system', '&#9881; ' + msg.name.replace('cubism_', ''));
+        break;
+    }
+  };
+
+  ws.onclose = () => {
+    updateStatus({connected: false});
+    reconnectTimer = setTimeout(connect, 3000);
+  };
+
+  ws.onerror = () => {};
+}
+
+function updateSendState() {
+  const s = loadSettings();
+  const hasKey = !!s.apiKey;
+  if (!hasKey) {
+    sendBtn.disabled = true;
+    sendBtn.title = '请先在设置中填入 API Key';
+  } else {
+    sendBtn.disabled = !(ws && ws.readyState === WebSocket.OPEN);
+    sendBtn.title = '';
+  }
+}
+
+function updateStatus(s) {
+  statusDot.classList.toggle('on', s.connected);
+  statusText.textContent = s.connected ? '已连接' : '未连接';
+  modelInfo.textContent = s.connected
+    ? `${s.edit_mode || '?'} | Model: ${s.model_uid ? s.model_uid.slice(-8) : '?'}`
+    : '';
+  input.disabled = !s.connected;
+  updateSendState();
+}
+
+function addMessage(role, content) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  let avatar = '';
+  if (role === 'user') avatar = 'You';
+  else if (role === 'ai') avatar = 'AI';
+  else if (role === 'system') avatar = '';
+
+  div.innerHTML = role === 'system'
+    ? `<div class="bubble">${escapeHtml(content)}</div>`
+    : `<div class="avatar">${avatar}</div><div class="bubble">${escapeHtml(content)}</div>`;
+
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>');
+}
+
+function send() {
+  const text = input.value.trim();
+  if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+  const s = loadSettings();
+  if (!s.apiKey) {
+    addMessage('system', '请先点击右上角 &#9881; 设置 API Key');
+    openSettings();
+    return;
+  }
+
+  // 检测"添加规则"意图
+  if (text.startsWith('添加规则') || text.startsWith('创建规则')) {
+    addMessage('user', text);
+    ws.send(JSON.stringify({ type: 'chat', content: text }));
+    input.value = '';
+    input.style.height = 'auto';
+    return;
+  }
+
+  addMessage('user', text);
+  ws.send(JSON.stringify({ type: 'chat', content: text }));
+  input.value = '';
+  input.style.height = 'auto';
+}
+
+// ==== Command Palette ====
+
+const BUILTIN_COMMANDS = [
+  { type: 'cmd', name: '查看参数', hint: 'get_parameter_structure', text: '查看参数结构' },
+  { type: 'cmd', name: '查看对象', hint: 'get_part_structure', text: '查看部件结构' },
+  { type: 'cmd', name: '查看变形器', hint: 'get_deformer_structure', text: '查看变形器结构' },
+  { type: 'cmd', name: '查看模型信息', hint: 'get parameters + documents', text: '查看当前模型的完整信息' },
+  { type: 'cmd', name: '查看选中', hint: 'get_selected_objects', text: '查看当前选中的对象' },
+  { type: 'cmd', name: '添加键位', hint: 'add_parameter_key', text: '在参数 ' },
+  { type: 'cmd', name: '修改参数', hint: 'edit_parameter', text: '修改参数 ' },
+  { type: 'cmd', name: '创建变形器', hint: 'add_rotation/warp_deformer', text: '创建变形器：' },
+  { type: 'cmd', name: '删除参数', hint: 'delete_parameter', text: '删除参数 ' },
+];
+
+let rulesList = [];
+let currentDraft = null;
+
+function openPalette() {
+  const search = document.getElementById('paletteSearch');
+  search.value = '';
+  document.getElementById('paletteOverlay').classList.add('open');
+  search.focus();
+  renderPalette('');
+}
+
+function closePalette() {
+  document.getElementById('paletteOverlay').classList.remove('open');
+}
+
+function renderPalette(filter) {
+  const el = document.getElementById('paletteList');
+  const q = filter.toLowerCase();
+  const filteredCmds = BUILTIN_COMMANDS.filter(c => c.name.toLowerCase().includes(q) || c.hint.toLowerCase().includes(q));
+  const filteredRules = rulesList.filter(r => r.name.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
+
+  let html = '';
+  if (filteredCmds.length) {
+    html += '<div class="section">命令</div>';
+    filteredCmds.forEach(c => {
+      html += `<div class="item" data-text="${escapeAttr(c.text)}" onclick="selectPaletteItem(this)">
+        <div class="icon cmd">&#9000;</div>
+        <div class="body"><div class="title">${c.name}</div><div class="hint">${c.hint}</div></div>
+      </div>`;
+    });
+  }
+  if (filteredRules.length) {
+    html += '<div class="section">规则</div>';
+    filteredRules.forEach(r => {
+      html += `<div class="item" data-text="${escapeAttr('/'+r.name+' ')}" onclick="selectPaletteItem(this)">
+        <div class="icon rule">&#9883;</div>
+        <div class="body"><div class="title">/${r.name}</div><div class="hint">${r.description}</div></div>
+      </div>`;
+    });
+  }
+  if (!filteredCmds.length && !filteredRules.length) {
+    html += '<div class="empty">无匹配结果</div>';
+  }
+  el.innerHTML = html;
+}
+
+function escapeAttr(s) { return s.replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+function selectPaletteItem(item) {
+  input.value = item.dataset.text;
+  closePalette();
+  input.focus();
+  autoResize();
+}
+
+// Palette keyboard and search
+document.getElementById('paletteSearch').addEventListener('input', function() {
+  renderPalette(this.value);
+});
+document.getElementById('paletteSearch').addEventListener('keydown', function(e) {
+  const items = document.querySelectorAll('#paletteList .item');
+  const sel = document.querySelector('#paletteList .item.sel');
+  let idx = Array.from(items).indexOf(sel);
+  if (e.key === 'ArrowDown') { e.preventDefault(); idx = Math.min(idx + 1, items.length - 1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); idx = Math.max(idx - 1, 0); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (sel) selectPaletteItem(sel); }
+  else return;
+  items.forEach(i => i.classList.remove('sel'));
+  if (items[idx]) items[idx].classList.add('sel');
+});
+document.getElementById('paletteOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closePalette();
+});
+
+// Slash button
+document.getElementById('slashBtn').addEventListener('click', openPalette);
+input.addEventListener('keydown', function(e) {
+  // Ctrl+/ opens palette
+  if (e.key === '/' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    openPalette();
+  }
+});
+
+// Rule draft modal
+function openRuleDraft(draft) {
+  currentDraft = draft;
+  document.getElementById('rdName').value = draft.name || '';
+  document.getElementById('rdDesc').value = draft.description || '';
+  document.getElementById('rdSteps').value = (draft.steps || []).join('\n');
+  renderTriggers(draft.triggers || []);
+  document.getElementById('ruleDraftOverlay').classList.add('open');
+}
+
+function closeRuleDraft() {
+  document.getElementById('ruleDraftOverlay').classList.remove('open');
+  currentDraft = null;
+}
+
+function renderTriggers(triggers) {
+  const el = document.getElementById('rdTriggers');
+  el.innerHTML = triggers.map(t =>
+    `<span style="background:var(--card);padding:3px 8px;border-radius:6px;font-size:12px;display:flex;align-items:center;gap:4px">
+      ${t} <span onclick="removeTrigger('${t}')" style="cursor:pointer;color:var(--text-dim)">&times;</span>
+    </span>`
+  ).join('');
+}
+
+function addTrigger() {
+  const inp = document.getElementById('rdTriggerNew');
+  const val = inp.value.trim();
+  if (!val || !currentDraft) return;
+  if (!currentDraft.triggers) currentDraft.triggers = [];
+  if (!currentDraft.triggers.includes(val)) {
+    currentDraft.triggers.push(val);
+    renderTriggers(currentDraft.triggers);
+  }
+  inp.value = '';
+}
+
+function removeTrigger(t) {
+  if (!currentDraft) return;
+  currentDraft.triggers = currentDraft.triggers.filter(x => x !== t);
+  renderTriggers(currentDraft.triggers);
+}
+
+function confirmRule() {
+  if (!currentDraft) return;
+  currentDraft.name = document.getElementById('rdName').value.trim();
+  currentDraft.description = document.getElementById('rdDesc').value.trim();
+  currentDraft.steps = document.getElementById('rdSteps').value.split('\n').filter(s => s.trim());
+  ws.send(JSON.stringify({ type: 'confirm_rule' }));
+  closeRuleDraft();
+}
+
+function reviseRule() {
+  const feedback = prompt('修改意见（告诉 LLM 如何改动）:', '');
+  if (!feedback) return;
+  // 保存 edits 到 draft 再发送修改请求
+  currentDraft.name = document.getElementById('rdName').value.trim();
+  currentDraft.description = document.getElementById('rdDesc').value.trim();
+  const triggers = Array.from(document.querySelectorAll('#rdTriggers span')).map(s => s.textContent.replace('×','').trim());
+  currentDraft.triggers = triggers;
+  currentDraft.steps = document.getElementById('rdSteps').value.split('\n').filter(s => s.trim());
+  addMessage('user', '修改规则：' + feedback);
+  ws.send(JSON.stringify({ type: 'chat', content: '修改规则：' + feedback }));
+  closeRuleDraft();
+}
+
+function deleteCurrentRule() {
+  const name = document.getElementById('rdName').value.trim();
+  if (!name || !confirm('确定删除规则 ' + name + '？')) return;
+  ws.send(JSON.stringify({ type: 'delete_rule', name: name }));
+  closeRuleDraft();
+}
+
+document.getElementById('ruleDraftOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeRuleDraft();
+});
+
+// ==== Event listeners ====
+
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    send();
+  }
+});
+
+sendBtn.addEventListener('click', send);
+
+document.getElementById('btnSettings').addEventListener('click', openSettings);
+
+// Auto-resize textarea
+function autoResize() {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 150) + 'px';
+}
+input.addEventListener('input', autoResize);
+
+// 首次加载提示
+const initialSettings = loadSettings();
+if (!initialSettings.apiKey) {
+  addMessage('system', '欢迎使用 Cubism Chat！请点击右上角 &#9881; 设置 DeepSeek API Key 后开始。');
+}
+
+connect();
+</script>
+
+</body>
+</html>
