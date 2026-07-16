@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import os
+import sys
 import time
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -18,7 +19,10 @@ from websockets.asyncio.client import ClientConnection
 logger = logging.getLogger(__name__)
 
 # Token 持久化文件
-TOKEN_FILE = Path(__file__).parent / ".cubism_token"
+if getattr(sys, "frozen", False):
+    TOKEN_FILE = Path(sys.executable).parent / ".cubism_token"
+else:
+    TOKEN_FILE = Path(__file__).parent / ".cubism_token"
 
 
 def _load_token() -> Optional[str]:
