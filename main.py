@@ -323,15 +323,14 @@ async def _safe_get_edit_mode() -> str:
 
 
 if __name__ == "__main__":
+    import traceback
     import uvicorn
     import webbrowser
-    host = os.getenv("APP_HOST", "127.0.0.1")
-    port = int(os.getenv("APP_PORT", "8765"))
-    is_frozen = getattr(sys, "frozen", False)
-    webbrowser.open(f"http://{host}:{port}")
-    uvicorn.run(
-        "main:app",
-        host=host,
-        port=port,
-        reload=not is_frozen,
-    )
+    try:
+        host = os.getenv("APP_HOST", "127.0.0.1")
+        port = int(os.getenv("APP_PORT", "8765"))
+        webbrowser.open(f"http://{host}:{port}")
+        uvicorn.run("main:app", host=host, port=port, reload=False)
+    except Exception:
+        traceback.print_exc()
+        input("Press Enter to exit...")
