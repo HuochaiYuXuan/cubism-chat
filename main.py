@@ -351,7 +351,7 @@ if __name__ == "__main__":
         host = os.getenv("APP_HOST", "127.0.0.1")
         port = int(os.getenv("APP_PORT", "8765"))
         webbrowser.open(f"http://{host}:{port}")
-        uvicorn.run("main:app", host=host, port=port, reload=False)
+        uvicorn.run(app, host=host, port=port, reload=False)
     except Exception:
         traceback.print_exc()
         _log_error(traceback.format_exc())
