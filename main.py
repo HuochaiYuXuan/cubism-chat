@@ -151,7 +151,7 @@ async def chat_ws(ws: WebSocket):
             # ---- 设置更新 ----
             if msg_type == "settings":
                 api_key = msg.get("apiKey", "")
-                model = msg.get("model", "deepseek-chat")
+                model = msg.get("model", "deepseek-v4-flash")
                 base_url = msg.get("baseUrl", os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"))
                 cubism_port = msg.get("cubismPort", "22033")
                 sessions[session_id]["settings"] = {

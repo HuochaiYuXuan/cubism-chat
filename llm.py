@@ -107,7 +107,7 @@ class LLMEngine:
     """DeepSeek LLM 引擎"""
 
     def __init__(self, api_key: str, base_url: str = "https://api.deepseek.com",
-                 model: str = "deepseek-chat"):
+                 model: str = "deepseek-v4-flash"):
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
         self.model = model

@@ -380,8 +380,8 @@
     <div class="hint" id="apiKeyHint"></div>
 
     <label>模型名称</label>
-    <input type="text" id="sModel" placeholder="deepseek-chat">
-    <div class="hint">DeepSeek 模型名，如 deepseek-chat、deepseek-reasoner</div>
+    <input type="text" id="sModel" placeholder="deepseek-v4-flash">
+    <div class="hint">DeepSeek 模型名，如 deepseek-v4-flash、deepseek-reasoner</div>
 
     <label>API Base URL</label>
     <input type="url" id="sBaseUrl" placeholder="https://api.deepseek.com">
@@ -446,7 +446,7 @@ let reconnectTimer = null;
 const SETTINGS_KEY = 'cubism-chat-settings';
 const DEFAULTS = {
   apiKey: '',
-  model: 'deepseek-chat',
+  model: 'deepseek-v4-flash',
   baseUrl: 'https://api.deepseek.com',
   cubismPort: '22033',
 };
