@@ -134,13 +134,14 @@ async def chat_ws(ws: WebSocket):
         "rule_draft": {},
     }
 
-    # 发送连接状态
+    # 发送连接状态和规则列表
     await _send_json(ws, {
         "type": "status",
         "connected": cubism.connected,
         "model_uid": await _safe_get_model_uid(),
         "edit_mode": await _safe_get_edit_mode(),
     })
+    await _send_rules(ws)
 
     try:
         while True:
@@ -318,6 +319,11 @@ async def _send_json(ws: WebSocket, data: dict):
         await ws.send_text(json.dumps(data, ensure_ascii=False, default=str))
     except Exception:
         pass
+
+
+async def _send_rules(ws: WebSocket):
+    """发送当前规则列表"""
+    await _send_rules(ws)
 
 
 async def _safe_get_model_uid() -> str:
