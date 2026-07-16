@@ -7,7 +7,9 @@ import asyncio
 import json
 import logging
 import os
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -19,6 +21,9 @@ from llm import LLMEngine
 from rules import load_rules, find_rule, list_rules_summary, save_rule, delete_rule
 
 load_dotenv()
+
+# PyInstaller 兼容：打包后 sys._MEIPASS 是临时解压目录
+BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 logger = logging.getLogger("cubism-chat")
@@ -76,7 +81,7 @@ async def _reconnect_loop():
 app = FastAPI(title="Cubism Chat", lifespan=lifespan)
 
 # 静态文件
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
 @app.get("/")

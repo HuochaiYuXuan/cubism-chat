@@ -10,7 +10,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
-RULES_DIR = Path(__file__).parent / "rules"
+import sys
+_BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
+RULES_DIR = _BASE / "rules"
 
 # 匹配 YAML frontmatter
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)

@@ -8,6 +8,11 @@ __pycache__/
 *.pyc
 *.pyo
 
+# PyInstaller
+build/
+dist/
+*.spec
+
 # IDE
 .vscode/
 .idea/
