@@ -319,9 +319,13 @@ async def _safe_get_edit_mode() -> str:
 
 if __name__ == "__main__":
     import uvicorn
+    import webbrowser
+    host = os.getenv("APP_HOST", "127.0.0.1")
+    port = int(os.getenv("APP_PORT", "8765"))
+    webbrowser.open(f"http://{host}:{port}")
     uvicorn.run(
         "main:app",
-        host=os.getenv("APP_HOST", "127.0.0.1"),
-        port=int(os.getenv("APP_PORT", "8000")),
+        host=host,
+        port=port,
         reload=True,
     )
