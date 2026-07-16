@@ -323,7 +323,10 @@ async def _send_json(ws: WebSocket, data: dict):
 
 async def _send_rules(ws: WebSocket):
     """发送当前规则列表"""
-    await _send_rules(ws)
+    await _send_json(ws, {
+        "type": "rules_list",
+        "rules": [{"name": r.name, "description": r.description, "triggers": r.triggers} for r in rules],
+    })
 
 
 async def _safe_get_model_uid() -> str:
