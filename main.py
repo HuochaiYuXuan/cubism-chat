@@ -99,7 +99,7 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 @app.get("/")
 async def index():
     """聊天界面"""
-    return FileResponse("static/index.html")
+    return FileResponse(str(BASE_DIR / "static" / "index.html"))
 
 
 @app.get("/api/status")
