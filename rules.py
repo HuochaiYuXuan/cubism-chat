@@ -11,8 +11,28 @@ from pathlib import Path
 from typing import Optional
 
 import sys
-_BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
-RULES_DIR = _BASE / "rules"
+if getattr(sys, "frozen", False):
+    # PyInstaller: 规则存在 exe 旁边，持久化
+    RULES_DIR = Path(sys.executable).parent / "rules"
+    # 首次启动：从 exe 内置资源复制默认规则到持久目录
+    _BUNDLED = Path(sys._MEIPASS) / "rules"
+else:
+    # 源码运行: 规则在项目目录
+    RULES_DIR = Path(__file__).parent / "rules"
+    _BUNDLED = None
+
+
+def _seed_default_rules():
+    """首次启动时，把内置规则复制到持久目录（如果文件不存在）"""
+    if _BUNDLED and _BUNDLED.is_dir():
+        RULES_DIR.mkdir(parents=True, exist_ok=True)
+        for f in _BUNDLED.glob("*.md"):
+            dest = RULES_DIR / f.name
+            if not dest.exists():
+                dest.write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
+
+
+_seed_default_rules()
 
 # 匹配 YAML frontmatter
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
