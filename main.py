@@ -3,13 +3,25 @@
 FastAPI 后端 + WebSocket 聊天 + Cubism Editor 连接
 """
 
-import asyncio
-import json
-import logging
-import os
-import sys
-from contextlib import asynccontextmanager
-from pathlib import Path
+import sys, os, traceback
+
+# 尽早捕获异常写入日志
+def _log_error(msg: str):
+    try:
+        with open(os.path.join(os.path.dirname(sys.executable), "cubism-chat-error.log"), "a") as f:
+            f.write(msg + "\n")
+    except:
+        pass
+
+try:
+    import asyncio
+    import json
+    import logging
+    from contextlib import asynccontextmanager
+    from pathlib import Path
+except Exception as e:
+    _log_error(f"Import error: {traceback.format_exc()}")
+    raise
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -326,6 +338,15 @@ if __name__ == "__main__":
     import traceback
     import uvicorn
     import webbrowser
+
+    # 全局异常钩子 — 防止 PyInstaller exe 闪退
+    def _global_excepthook(etype, value, tb):
+        msg = "".join(traceback.format_exception(etype, value, tb))
+        print(msg)
+        _log_error(msg)
+        input("Press Enter to exit...")
+    sys.excepthook = _global_excepthook
+
     try:
         host = os.getenv("APP_HOST", "127.0.0.1")
         port = int(os.getenv("APP_PORT", "8765"))
@@ -333,4 +354,5 @@ if __name__ == "__main__":
         uvicorn.run("main:app", host=host, port=port, reload=False)
     except Exception:
         traceback.print_exc()
+        _log_error(traceback.format_exc())
         input("Press Enter to exit...")
