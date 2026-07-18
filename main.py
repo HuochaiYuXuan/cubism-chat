@@ -183,6 +183,12 @@ async def chat_ws(ws: WebSocket):
             # ---- 规则草案确认 ----
             if msg_type == "confirm_rule":
                 draft = sessions[session_id].get("rule_draft", {})
+                # 内置规则不可覆盖
+                existing = [r for r in rules if r.name == draft.get("name") and r.builtin]
+                if existing:
+                    await _send_json(ws, {"type": "message", "role": "system",
+                        "content": f"规则 '{draft['name']}' 是内置规则，不可覆盖。"})
+                    continue
                 if draft:
                     path = save_rule(
                         name=draft.get("name", "untitled"),
@@ -207,6 +213,12 @@ async def chat_ws(ws: WebSocket):
             # ---- 删除规则 ----
             if msg_type == "delete_rule":
                 rule_name = msg.get("name", "")
+                # 内置规则不可删除
+                existing = [r for r in rules if r.name == rule_name and r.builtin]
+                if existing:
+                    await _send_json(ws, {"type": "message", "role": "system",
+                        "content": f"规则 '{rule_name}' 是内置规则，不可删除。"})
+                    continue
                 if rule_name:
                     deleted = delete_rule(rule_name)
                     rules = load_rules()
@@ -325,7 +337,7 @@ async def _send_rules(ws: WebSocket):
     """发送当前规则列表（含完整内容用于编辑）"""
     await _send_json(ws, {
         "type": "rules_list",
-        "rules": [{"name": r.name, "description": r.description, "triggers": r.triggers, "body": r.body} for r in rules],
+        "rules": [{"name": r.name, "description": r.description, "triggers": r.triggers, "body": r.body, "builtin": r.builtin} for r in rules],
     })
 
 

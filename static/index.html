@@ -718,10 +718,11 @@ function renderPalette(filter) {
   if (filteredRules.length) {
     html += '<div class="section">规则</div>';
     filteredRules.forEach(r => {
+      const isBuiltin = r.builtin;
       html += `<div class="item" data-text="${escapeAttr('/'+r.name+' ')}">
-        <div class="icon rule" onclick="event.stopPropagation();selectPaletteItem(this.parentElement)">&#9883;</div>
-        <div class="body" onclick="selectPaletteItem(this.parentElement)"><div class="title">/${r.name}</div><div class="hint">${r.description}</div></div>
-        <button class="edit-rule-btn" onclick="event.stopPropagation();editExistingRule('${r.name}')" title="编辑">&#9998;</button>
+        <div class="icon rule" onclick="event.stopPropagation();selectPaletteItem(this.parentElement)">${isBuiltin ? '&#128274;' : '&#9883;'}</div>
+        <div class="body" onclick="selectPaletteItem(this.parentElement)"><div class="title">/${r.name}${isBuiltin ? ' <span style="font-size:10px;color:var(--text-dim)">内置</span>' : ''}</div><div class="hint">${r.description}</div></div>
+        ${isBuiltin ? '' : `<button class="edit-rule-btn" onclick="event.stopPropagation();editExistingRule('${r.name}')" title="编辑">&#9998;</button>`}
       </div>`;
     });
   }

@@ -45,6 +45,7 @@ class Rule:
     description: str = ""
     triggers: list[str] = field(default_factory=list)
     body: str = ""
+    builtin: bool = False
 
     @property
     def slash_names(self) -> list[str]:
@@ -120,6 +121,7 @@ def load_rules() -> list[Rule]:
                 description=fm.get("description", ""),
                 triggers=fm.get("triggers", []),
                 body=body,
+                builtin=fm.get("builtin", False) is True or fm.get("builtin", False) == "true",
             )
             # 自动添加 /name 为触发词
             slash = f"/{rule.name}"

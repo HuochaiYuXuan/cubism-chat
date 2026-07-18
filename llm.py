@@ -268,6 +268,11 @@ class LLMEngine:
         if name == "cubism_create_rule":
             return {"__rule_draft__": True, **args}
 
+        # cubism_read_psd — 本地 PSD 解析，不调 Cubism
+        if name == "cubism_read_psd":
+            from psd_reader import parse_psd
+            return parse_psd(args["file_path"])
+
         result = await cubism.call(method, data)
         return result
 

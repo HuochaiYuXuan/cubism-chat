@@ -1003,9 +1003,30 @@ TOOL_CREATE_RULE = {
 
 # ====== ALL TOOLS LIST ======
 
+# ====== PSD READER (1) ======
+
+TOOL_READ_PSD = {
+    "type": "function",
+    "function": {
+        "name": "cubism_read_psd",
+        "description": "读取 PSD 文件的图层信息和剪贴蒙版关系。返回图层列表（名称、剪贴标志、是否组）和蒙版关系（被蒙版图层名→蒙版源图层名）。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "file_path": {"type": "string", "description": "PSD 文件的绝对路径"},
+            },
+            "required": ["file_path"]
+        }
+    }
+}
+
+# ====== ALL TOOLS LIST ======
+
 ALL_TOOLS = [
     # Auth
     TOOL_CREATE_RULE,
+    # PSD
+    TOOL_READ_PSD,
     TOOL_REGISTER_PLUGIN, TOOL_GET_IS_APPROVAL,
     # Edit Session
     TOOL_EDIT_BEGIN, TOOL_EDIT_END, TOOL_EDIT_SEND_LOG,
