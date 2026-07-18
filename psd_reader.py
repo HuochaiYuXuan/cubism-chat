@@ -64,8 +64,8 @@ def _walk(parent, layers: list, relations: list, depth: int):
                 "_obj": None,
             })
         elif isinstance(layer, PixelLayer):
-            # 用 psd-tools API 判断剪贴状态
-            is_clipped = layer.has_clipping_mask() if hasattr(layer, "has_clipping_mask") else False
+            # psd-tools: clipping_base 非 None 表示该层被剪贴到某个基础层
+            is_clipped = getattr(layer, "clipping_base", None) is not None
             clipping = 1 if is_clipped else 0  # 0=基础, 1=被剪贴
             siblings.append({
                 "name": layer.name,
