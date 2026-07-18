@@ -261,7 +261,36 @@
   .palette-list .item .body { flex: 1; min-width: 0; }
   .palette-list .item .title { font-size: 14px; font-weight: 600; }
   .palette-list .item .hint { font-size: 12px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .palette-list .item .edit-rule-btn {
+    width: 28px; height: 28px;
+    border: none; background: none;
+    color: var(--text-dim); font-size: 14px;
+    cursor: pointer; border-radius: 6px;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .palette-list .item .edit-rule-btn:hover { background: var(--border); color: var(--text); }
   .palette-list .empty { text-align: center; padding: 30px; color: var(--text-dim); font-size: 14px; }
+  .palette-list .footer {
+    border-top: 1px solid var(--border);
+    padding: 6px 8px;
+  }
+  .palette-list .footer button {
+    width: 100%;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    color: var(--text-dim);
+    padding: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .palette-list .footer button:hover {
+    color: var(--text);
+    border-color: var(--primary);
+    background: rgba(233,69,96,0.05);
+  }
 
   /* Rule triggered banner */
   .rule-banner {
@@ -689,14 +718,19 @@ function renderPalette(filter) {
   if (filteredRules.length) {
     html += '<div class="section">规则</div>';
     filteredRules.forEach(r => {
-      html += `<div class="item" data-text="${escapeAttr('/'+r.name+' ')}" onclick="selectPaletteItem(this)">
-        <div class="icon rule">&#9883;</div>
-        <div class="body"><div class="title">/${r.name}</div><div class="hint">${r.description}</div></div>
+      html += `<div class="item" data-text="${escapeAttr('/'+r.name+' ')}">
+        <div class="icon rule" onclick="event.stopPropagation();selectPaletteItem(this.parentElement)">&#9883;</div>
+        <div class="body" onclick="selectPaletteItem(this.parentElement)"><div class="title">/${r.name}</div><div class="hint">${r.description}</div></div>
+        <button class="edit-rule-btn" onclick="event.stopPropagation();editExistingRule('${r.name}')" title="编辑">&#9998;</button>
       </div>`;
     });
   }
   if (!filteredCmds.length && !filteredRules.length) {
     html += '<div class="empty">无匹配结果</div>';
+  }
+  // 手动创建入口（无筛选或筛选结果为空时显示）
+  if (!filter || !(filteredCmds.length || filteredRules.length)) {
+    html += '<div class="footer"><button onclick="openRuleDraft()">+ 手动创建规则</button></div>';
   }
   el.innerHTML = html;
 }
@@ -708,6 +742,25 @@ function selectPaletteItem(item) {
   closePalette();
   input.focus();
   autoResize();
+}
+
+function editExistingRule(name) {
+  const rule = rulesList.find(r => r.name === name);
+  if (!rule) return;
+  // 解析 body：第一行 # 标题跳过，其余作为步骤
+  const lines = (rule.body || '').split('\n');
+  // 跳过标题行（以 # 开头）
+  let bodyStart = 0;
+  if (lines[0] && lines[0].startsWith('#')) bodyStart = 1;
+  if (lines[bodyStart] && lines[bodyStart].startsWith('##')) bodyStart++;
+  const steps = lines.slice(bodyStart).join('\n').trim();
+  closePalette();
+  openRuleDraft({
+    name: rule.name,
+    description: rule.description,
+    triggers: rule.triggers.filter(t => !t.startsWith('/')),
+    steps: steps,
+  });
 }
 
 // Palette keyboard and search
@@ -741,10 +794,11 @@ input.addEventListener('keydown', function(e) {
 
 // Rule draft modal
 function openRuleDraft(draft) {
+  draft = draft || { name: '', description: '', triggers: [], steps: [] };
   currentDraft = draft;
   document.getElementById('rdName').value = draft.name || '';
   document.getElementById('rdDesc').value = draft.description || '';
-  document.getElementById('rdSteps').value = (draft.steps || []).join('\n');
+  document.getElementById('rdSteps').value = Array.isArray(draft.steps) ? draft.steps.join('\n') : (draft.steps || '');
   renderTriggers(draft.triggers || []);
   document.getElementById('ruleDraftOverlay').classList.add('open');
 }
