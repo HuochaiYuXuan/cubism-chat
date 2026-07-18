@@ -64,9 +64,9 @@ def _walk(parent, layers: list, relations: list, depth: int):
                 "_obj": None,
             })
         elif isinstance(layer, PixelLayer):
-            # psd-tools: clipping_base 非 None 表示该层被剪贴到某个基础层
-            is_clipped = getattr(layer, "clipping_base", None) is not None
-            clipping = 1 if is_clipped else 0  # 0=基础, 1=被剪贴
+            # 从原始记录读 clipping 字节，和 Java PsdMaskReader 完全一致
+            rec = getattr(layer, "_record", None)
+            clipping = getattr(rec, "clipping", 0) if rec else 0
             siblings.append({
                 "name": layer.name,
                 "clipping": clipping,
