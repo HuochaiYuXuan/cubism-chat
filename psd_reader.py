@@ -59,8 +59,13 @@ def _parse(data: bytes) -> dict:
 
 def _skip_block(reader):
     length = reader.i32()
+    if length < 0 or length > reader._size - reader.tell():
+        raise ValueError(f"PSD 块长度异常: {length}（位置 {reader.tell()}/{reader._size}），文件可能已损坏或格式不兼容")
     if length > 0:
         reader.skip(length)
+    # PSD 块长度奇偶对齐
+    if length % 2 != 0 and reader.tell() < reader._size:
+        reader.skip(1)
 
 
 def _read_layers(reader) -> list:
@@ -68,7 +73,8 @@ def _read_layers(reader) -> list:
     block_len = reader.i32()
     if block_len == 0:
         return []
-
+    if block_len < 0 or block_len > reader._size - reader.tell():
+        raise ValueError(f"PSD 图层块长度异常: {block_len}（位置 {reader.tell()}/{reader._size}），文件可能已损坏或解析偏移")
     block_end = reader.tell() + block_len
     reader.skip(4)  # layer info length
 
