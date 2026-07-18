@@ -231,13 +231,104 @@ TOOL_GET_PHYSICS_INFO = {
     "type": "function",
     "function": {
         "name": "cubism_get_physics_info",
-        "description": "获取物理模拟设置中的计算 FPS。",
+        "description": "获取物理模拟设置中的计算 FPS。可选传入 Fps 参数设置。",
         "parameters": {
             "type": "object",
             "properties": {
                 "model_uid": {"type": "string", "description": "模型 UID"},
+                "fps": {"type": "number", "description": "物理计算 FPS（可选）"},
             },
             "required": ["model_uid"]
+        }
+    }
+}
+
+TOOL_SET_GLOBAL_VERSION = {
+    "type": "function",
+    "function": {
+        "name": "cubism_set_global_version",
+        "description": "设置 API 版本，锁定兼容版本。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "version": {"type": "string", "description": "API 版本号，如 '1.0.1'"},
+            },
+            "required": []
+        }
+    }
+}
+
+TOOL_NOTIFY_PHYSICS_FILE_EXPORTED = {
+    "type": "function",
+    "function": {
+        "name": "cubism_notify_physics_file_exported",
+        "description": "订阅/取消订阅物理设置文件导出事件。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "enabled": {"type": "boolean", "description": "true=订阅, false=取消订阅"},
+            },
+            "required": ["enabled"]
+        }
+    }
+}
+
+TOOL_NOTIFY_MOC_FILE_EXPORTED = {
+    "type": "function",
+    "function": {
+        "name": "cubism_notify_moc_file_exported",
+        "description": "订阅/取消订阅 MOC3 文件导出事件。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "enabled": {"type": "boolean", "description": "true=订阅, false=取消订阅"},
+            },
+            "required": ["enabled"]
+        }
+    }
+}
+
+TOOL_NOTIFY_MOTION_FILE_EXPORTED = {
+    "type": "function",
+    "function": {
+        "name": "cubism_notify_motion_file_exported",
+        "description": "订阅/取消订阅动画文件导出事件。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "enabled": {"type": "boolean", "description": "true=订阅, false=取消订阅"},
+            },
+            "required": ["enabled"]
+        }
+    }
+}
+
+TOOL_NOTIFY_MOTION_SYNC_FILE_EXPORTED = {
+    "type": "function",
+    "function": {
+        "name": "cubism_notify_motion_sync_file_exported",
+        "description": "订阅/取消订阅 MotionSync 设置文件导出事件。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "enabled": {"type": "boolean", "description": "true=订阅, false=取消订阅"},
+            },
+            "required": ["enabled"]
+        }
+    }
+}
+
+TOOL_NOTIFY_CHANGE_EDIT_MODE = {
+    "type": "function",
+    "function": {
+        "name": "cubism_notify_change_edit_mode",
+        "description": "订阅/取消订阅编辑模式切换事件。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "enabled": {"type": "boolean", "description": "true=订阅, false=取消订阅"},
+            },
+            "required": ["enabled"]
         }
     }
 }
@@ -1036,6 +1127,11 @@ ALL_TOOLS = [
     TOOL_GET_CURRENT_MODEL_UID, TOOL_GET_CURRENT_EDIT_MODE,
     TOOL_GET_PARAMETERS, TOOL_GET_PARAMETER_GROUPS,
     TOOL_GET_PHYSICS_INFO, TOOL_SEND_CUBISM_LOG, TOOL_CLEAR_PARAMETER_VALUES,
+    TOOL_SET_GLOBAL_VERSION,
+    # Events (old API)
+    TOOL_NOTIFY_PHYSICS_FILE_EXPORTED, TOOL_NOTIFY_MOC_FILE_EXPORTED,
+    TOOL_NOTIFY_MOTION_FILE_EXPORTED, TOOL_NOTIFY_MOTION_SYNC_FILE_EXPORTED,
+    TOOL_NOTIFY_CHANGE_EDIT_MODE,
     # Parameter Values
     TOOL_GET_PARAMETER_VALUES, TOOL_SET_PARAMETER_VALUES,
     # Parameter Structure (5.4)
