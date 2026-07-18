@@ -261,28 +261,39 @@ def _collect_descendants(layers: list, group_index: int) -> list:
 # ---- 读取器 ----
 
 class _Reader:
-    """带位置追踪的二进制读取器"""
+    """带位置追踪和边界检查的二进制读取器"""
 
     def __init__(self, buf: io.BytesIO):
         self._buf = buf
+        self._size = len(buf.getvalue())
 
     def tell(self) -> int:
         return self._buf.tell()
 
+    def _check(self, n: int):
+        if self.tell() + n > self._size:
+            raise EOFError(f"尝试读取 {n} 字节，但只剩 {self._size - self.tell()} 字节（位置 {self.tell()}/{self._size}）")
+
     def read(self, n: int) -> bytes:
+        if n <= 0:
+            return b""
+        self._check(n)
         return self._buf.read(n)
 
     def skip(self, n: int):
+        if n <= 0:
+            return
+        self._check(n)
         self._buf.seek(n, io.SEEK_CUR)
 
     def u8(self) -> int:
-        return struct.unpack("B", self._buf.read(1))[0]
+        return struct.unpack("B", self.read(1))[0]
 
     def u16(self) -> int:
-        return struct.unpack(">H", self._buf.read(2))[0]
+        return struct.unpack(">H", self.read(2))[0]
 
     def i16(self) -> int:
-        return struct.unpack(">h", self._buf.read(2))[0]
+        return struct.unpack(">h", self.read(2))[0]
 
     def i32(self) -> int:
-        return struct.unpack(">i", self._buf.read(4))[0]
+        return struct.unpack(">i", self.read(4))[0]
