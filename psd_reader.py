@@ -4,6 +4,7 @@
 """
 
 from psd_tools import PSDImage
+from psd_tools.api.layers import Group, PixelLayer
 
 
 def parse_psd(file_path: str) -> dict:
@@ -20,49 +21,101 @@ def parse_psd(file_path: str) -> dict:
     layers = []
     relations = []
     _walk(psd, layers, relations, depth=0)
-    # 为兼容旧输出格式，补充 index
+
+    # 补充 index
     for i, l in enumerate(layers):
         l["index"] = i
 
     return {"layers": layers, "relations": relations}
 
 
-def _walk(group, layers: list, relations: list, depth: int):
-    """递归遍历图层树，提取剪贴蒙版关系"""
-    for layer in group:
-        if layer.is_group():
-            # 组本身
-            layers.append({
+def _walk(parent, layers: list, relations: list, depth: int):
+    """递归遍历图层树，按 Java mod 的逻辑解析剪贴关系
+
+    核心逻辑（来自 Java PsdMaskReader.resolveMaskRelations）：
+    - clipping=0 的图层是基础层（蒙版源）
+    - clipping=1 的图层是被剪贴层，剪贴到它下方最近的基础层
+    - 连续多个 clipping=1 的图层都剪贴到同一个基础层
+    - 如果基础层是组，展开为组内每个直接子层
+    """
+
+    # 第一步：收集本层级的普通图层，标记 clipping 状态
+    siblings = []
+    for layer in parent:
+        if isinstance(layer, Group):
+            # 组标记
+            siblings.append({
                 "name": layer.name,
-                "clipping": 0,
-                "index": -1,
+                "clipping": 0,  # 组可作为基础层
                 "is_group": True,
                 "is_group_end": False,
                 "depth": depth,
+                "_obj": layer,
             })
+            # 递归处理组内图层
             _walk(layer, layers, relations, depth + 1)
-            layers.append({
+            # 组结束标记
+            siblings.append({
                 "name": "</Layer group>",
                 "clipping": 0,
-                "index": -1,
                 "is_group": False,
                 "is_group_end": True,
                 "depth": depth,
+                "_obj": None,
             })
-        else:
-            layers.append({
+        elif isinstance(layer, PixelLayer):
+            # 用 psd-tools API 判断剪贴状态
+            is_clipped = layer.has_clipping_mask() if hasattr(layer, "has_clipping_mask") else False
+            clipping = 1 if is_clipped else 0  # 0=基础, 1=被剪贴
+            siblings.append({
                 "name": layer.name,
-                "clipping": 2,  # 默认独立
-                "index": -1,
+                "clipping": clipping,
                 "is_group": False,
                 "is_group_end": False,
                 "depth": depth,
+                "_obj": layer,
             })
-            # 检查剪贴蒙版：clipping_base 是被剪贴到的基底图层
-            if hasattr(layer, "clipping_base") and layer.clipping_base is not None:
-                # 标记当前层为被剪贴 (1)
-                layers[-1]["clipping"] = 1
-                relations.append({
-                    "masked": layer.name,
-                    "source": layer.clipping_base.name,
-                })
+        # 其他类型（调整层等）跳过
+
+    layers.extend([{k: v for k, v in s.items() if k != "_obj"} for s in siblings])
+
+    # 第二步：在本层级解析蒙版关系
+    # 从下往上遍历（i=0 是栈底），找每个 clipping=1 图层的基础层
+    for i, sib in enumerate(siblings):
+        if sib["clipping"] != 1:
+            continue
+
+        base = _find_base(siblings, i)
+        if base is None:
+            continue
+
+        if base["is_group"] and base["_obj"] is not None:
+            # 组作为基础层：展开为组内所有直接子层
+            children = _collect_children(base["_obj"])
+            for child_name in children:
+                relations.append({"masked": sib["name"], "source": child_name})
+        else:
+            relations.append({"masked": sib["name"], "source": base["name"]})
+
+
+def _find_base(siblings: list, start_index: int) -> dict | None:
+    """从被剪贴层向上扫描，找最近的 clipping=0 基础层（同深度）"""
+    target = siblings[start_index]
+    for j in range(start_index - 1, -1, -1):
+        c = siblings[j]
+        if c.get("is_group_end"):
+            continue
+        if c["depth"] != target["depth"]:
+            continue
+        if c["clipping"] == 0:
+            return c
+    return None
+
+
+def _collect_children(group) -> list:
+    """收集组内所有直接子层的名称（非组标记）"""
+    names = []
+    for layer in group:
+        if not isinstance(layer, Group):
+            names.append(layer.name)
+    return names
